@@ -5,7 +5,7 @@ class Banheiro;
 
 class Pessoa {
 public:
-	int sexo;
+	char sexo;
 	int id;
 
 	// nr - passagem de bastao
@@ -27,10 +27,9 @@ public:
 
 	Pessoa(int id,sexo s, Parque *p);
 
-	void entraNoBanheiroH();
-	void entraNoBanheiroM();
-	void saiDoBanheiroH();
-	void saiDoBanheiroM();
+	void entraNoBanheiro();
+
+	void saiDoBanheiro();
 
 	void ficaMoscando();
 	bool banheiroFechado();

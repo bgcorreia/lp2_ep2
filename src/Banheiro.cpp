@@ -1,8 +1,6 @@
 #include "Banheiro.h"
 #include <mutex>
 
-int utilizacaoGeral = 0 ;
-
 Banheiro::Banheiro()
 {
 

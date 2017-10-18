@@ -75,7 +75,7 @@ void Pessoa::entraNoBanheiro(sexo){
                 //if ( !(homensDormindo > 0 && mulheresConsecutivos >= UTILIZACAO_CONSEC ) ) { // DUVIDA
                     mulher.lock; // Permite a mulher entrar no banheiro
                 //} else {
-                    mulheresDormindo--; // Tira mulher da fila
+                     // Tira mulher da fila
 
                 //}
             }
@@ -90,12 +90,13 @@ void Pessoa::entraNoBanheiro(sexo){
 
 
             //SIGNAL- AJUSTAR RESTRIÇÕES
-            if (mulheresNoBanheiro <= CAPACIDADE_BANHEIRO) {
+            if (mulheresNoBanheiro < CAPACIDADE_BANHEIRO) {
 
-                if ( homensDormindo == 0 && mulheresConsecutivos < UTILIZACAO_CONSEC && mulheresDormindo > 0 ){
+                if (mulheresConsecutivos < UTILIZACAO_CONSEC && mulheresDormindo > 0 ){
 
-                    //mulheresDormindo--; // Tira mulher da fila
+                    mulheresDormindo--; // Tira mulher da fila
                     mulher.unlock; // Permite entrada no WC
+
 
                 } else {
 
@@ -123,7 +124,7 @@ void Pessoa::entraNoBanheiro(sexo){
                 homensDormindo--;
                 homem.unlock;
 
-            else if (mulheresConsecutivos < UTILIZACAO_CONSEC && mulheresDormindo > 0 && homensDormindo == 0){
+            else if ((mulheresConsecutivos < UTILIZACAO_CONSEC && mulheresDormindo > 0 && homensDormindo == 0) || (mulheresConsecutivos > UTILIZACAO_CONSEC && homensDormindo == 0)){
 
                 mulheresDormindo--;
                 mulher.unlock;

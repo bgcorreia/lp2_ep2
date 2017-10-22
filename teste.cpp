@@ -4,15 +4,15 @@
 #include <mutex>
 #include <chrono>
 
-#define NUM_PESSOAS 10
-#define MAX_UTILIZACAO 20
-#define CAPACIDADE_BANHEIRO 3
-#define UTILIZACAO_CONSEC 3
+#define NUM_PESSOAS 3
+#define MAX_UTILIZACAO 5
+#define CAPACIDADE_BANHEIRO 2
+#define UTILIZACAO_CONSEC 2
 #define TEMPO 2
-#define TEMPO_MINIMO_WC 2
-#define TEMPO_MAXIMO_WC 5
-#define TEMPO_MINIMO_MOSCANDO 3
-#define TEMPO_MAXIMO_MOSCANDO 10
+#define TEMPO_MINIMO_WC 10
+#define TEMPO_MAXIMO_WC 20
+#define TEMPO_MINIMO_MOSCANDO 10
+#define TEMPO_MAXIMO_MOSCANDO 20
 
 using namespace std;
 
@@ -30,19 +30,10 @@ int mulheresConsecutivos = 0; // Nº de mulheres que entraram seguidamente no WC
 
 int utilizacaoGeral = 0;
 
-//mutex entrada = 1;
 mutex entrada;
-//entrada = 1;
 mutex homem;
 mutex mulher;
 mutex mensagem;
-//mutex mensagem;
-
-/*
-mutex entrada = 1;
-mutex homem = 0;
-mutex mulher = 0;
-*/
 
 void delay(int sec) {
     chrono::seconds time(sec); // Define tempo em segundos
@@ -50,16 +41,10 @@ void delay(int sec) {
 }
 
 void delayRandomWC(){
-	srand(time(NULL));
-
-	// Dorme um tempo aleatorio
 	delay( rand() % TEMPO_MAXIMO_WC + TEMPO_MINIMO_WC );
 }
 
 void delayRandomMoscando(){
-	srand(time(NULL));
-
-	// Dorme um tempo aleatorio
 	delay( rand() % TEMPO_MAXIMO_MOSCANDO + TEMPO_MINIMO_MOSCANDO );
 }
 
@@ -75,13 +60,13 @@ public:
 	}
 
 	void run(){
-		cout << endl << "Pessoa Nº:" << this->id << " | Sexo:" << this->sexo << endl;
+		entraNoBanheiro();
 	}
 
 	void entraNoBanheiro(){
 
 		mensagem.lock();
-		cout << endl << "Thread Nº: " << this->id << " | Sexo: " << this->sexo << endl;
+		cout << endl << "CHEGOU PESSOA Nº: [" << this->id << "] | [" << ((this->sexo=='M')?"HOMEM":"MULHER") << "]" << endl << flush;
 		mensagem.unlock();
 
 	    if (this->sexo == 'M') { // SEXO MASCULINO
@@ -93,31 +78,34 @@ public:
 	            entrada.lock(); // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
 	       
 	            mensagem.lock();
-	            cout << endl <<  "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            cout << endl <<  "---- LIBEROU ENTRADA PRINCIPAL - [HOMEM] - Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl << flush;
 	            mensagem.unlock();
 
 	            if ( utilizacaoGeral >= MAX_UTILIZACAO ) { // Verifica se chegou no limite de utilizações.
 	                // destroy thread
 	                //mensagem.lock();
 	                mensagem.lock();
-	            	cout << endl << "Banheiro chegou em sua utilização máxima." << endl;
+	            	cout << endl << "Banheiro chegou em sua utilização máxima." << endl << flush;
 	            	mensagem.unlock();
+	            	
 	            	break;
+	            	//this->detach();
 	            	//mensagem.unlock();
 
 	            } 
 	            else if ( (mulheresNoBanheiro > 0) || ((homensNoBanheiro == CAPACIDADE_BANHEIRO) && (homensConsecutivos >= UTILIZACAO_CONSEC))) { // Se a condição for verdadeira, o homem entra na fila.
 	                
+	                homensDormindo++; // Incremento do contador de homens na fila.
+
 	                mensagem.lock();
 	            	//cout << endl << "Entrei na fila - [" << this->id << "] | Sexo [" << this->sexo << "]." << endl;
-	            	cout << "---- ENTREI NA FILA - [" << this->id << "] | Sexo [" << this->sexo << "]." << endl;
+	            	cout << endl << "---- ENTREI NA FILA - [HOMEM] - PESSOA Nº: [" << this->id << "]"<< endl << flush;
+	            	//cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            	cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            	<< "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl << flush;
 	            	mensagem.unlock();
 
-	            	mensagem.lock();
-	            	cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
-	            	mensagem.unlock();
-
-	                homensDormindo++; // Incremento do contador de homens na fila.
 	                entrada.unlock(); // Método V(e); -- Libera a fila do P(e);
 	                homem.lock(); // "Dorme" na fila até ser liberado.
 	            }
@@ -129,7 +117,6 @@ public:
 	            homensConsecutivos++; // Incrementa nº de homens no WC
 
 	            utilizacaoGeral++; // Incrementa o nº de utilizações
-
 
 	            // SIGNAL DE ENTRADA ( HOMEM ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
 	            if (homensNoBanheiro < CAPACIDADE_BANHEIRO){ // Verifica se cabe outro homem.
@@ -152,13 +139,23 @@ public:
 	                entrada.unlock(); // Método V(e); -- Libera a fila do P(e);
 	            }
 
+	            /*
+	            homensNoBanheiro++; // Homem entra no WC
+
+	            mulheresConsecutivos = 0; // Zera mulheres no WC.
+
+	            homensConsecutivos++; // Incrementa nº de homens no WC
+
+	            utilizacaoGeral++; // Incrementa o nº de utilizações
+	            */
+
 	            // SEÇÃO CRÍTICA
 	            mensagem.lock();
-	            cout << "---- ENTREI NO WC -" << utilizacaoGeral << "- Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER MASCULINO)" << endl; 
-	            mensagem.unlock();
-
-	            mensagem.lock();
-	            cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            //cout << "---- ENTREI NO WC -" << utilizacaoGeral << "- Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER MASCULINO)" << endl; 
+	            cout << endl << "---- ENTREI NO WC - [HOMEM] - PESSOA Nº: [" << this->id << "]" << " | UTILIZAÇÕES: [" << utilizacaoGeral << "]" << endl << flush;
+	            //cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            cout <<  "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl << flush;
 	            mensagem.unlock();
 
 	            delayRandomWC();
@@ -167,9 +164,10 @@ public:
 
 	            entrada.lock(); // P(e); -- Necessário para garantir atomicidade.
 
-	            mensagem.lock();
-	            cout << endl << "---DEBUG " << "homensConsecutivos: " << homensConsecutivos << " | mulheresDormindo: " << mulheresDormindo << " | homensNoBanheiro: " << homensNoBanheiro << endl;
-	            mensagem.unlock();
+	            //mensagem.lock();
+	            //cout << endl << "---DEBUG " << "Homens Consecutivos: " << homensConsecutivos << " | Mulheres na fila: " << mulheresDormindo 
+	            //<< " | Homens na fila: " << homensDormindo << " | Homens no Banheiro: " << homensNoBanheiro << endl;
+	            //mensagem.unlock();
 
 	            homensNoBanheiro--; // Decrementa o contador de homens no banheiro.
 
@@ -189,11 +187,11 @@ public:
 
 		        // SEÇÃO NÃO CRÍTICA
 		        mensagem.lock();
-		        cout << "---- SAI DO WC -" << utilizacaoGeral << "- Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER MASCULINO)" << endl; 
-		        mensagem.unlock();
-
-		        mensagem.lock();
-	            cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+		        //cout << "---- SAI DO WC -" << utilizacaoGeral << "- Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER MASCULINO)" << endl; 
+		        cout << endl << "---- SAI DO WC - [HOMEM] - PESSSOA Nº: [" << this->id << "]" << endl << flush;
+		        //cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl << flush;
 	            mensagem.unlock();
 
 		        delayRandomMoscando();
@@ -210,29 +208,36 @@ public:
 	        	bool liberouMulherAntes = false;
 
 	            entrada.lock(); // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
+	            
 	            mensagem.lock();
-	            cout << endl <<  "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            //cout << endl <<  "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            cout << endl <<  "---- LIBEROU ENTRADA PRINCIPAL - [MULHER] - Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl << flush;
 	            mensagem.unlock();
 
 	            if ( utilizacaoGeral >= MAX_UTILIZACAO ){ // Verifica se chegou no limite de utilizações.
 	                // destroy thread
 	                mensagem.lock();
-					cout << endl << "Banheiro chegou em sua utilização máxima." << endl;
+					cout << endl << "Banheiro chegou em sua utilização máxima." << endl << flush;
 					mensagem.unlock();
+					
+					//this->detach();
 					break;
+
 	            }
 	            else if ( (homensNoBanheiro > 0) || ((mulheresNoBanheiro == CAPACIDADE_BANHEIRO) && (mulheresConsecutivos >= UTILIZACAO_CONSEC))){ // Se a condição for verdadeira, a mulher entra na fila.
 
+	            	mulheresDormindo++; // Incremento do contador de mulheres na fila.
+
 	            	mensagem.lock();
 	            	//cout << endl << "Entrei na fila - [" << this->id << "] | Sexo [" << this->sexo << "]." << endl;
-	            	cout << "---- ENTREI NA FILA - [" << this->id << "] | Sexo [" << this->sexo << "]." << endl;
-	            	mensagem.unlock();
-
-	            	mensagem.lock();
-		            cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            	//cout << "---- ENTREI NA FILA - [" << this->id << "] | Sexo [" << this->sexo << "]." << endl;
+	            	cout << endl << "---- ENTREI NA FILA - [MULHER] - PESSOA Nº: [" << this->id << "]" << endl << flush;
+	            	//
+	            	cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            	<< "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl << flush;
 		            mensagem.unlock();
 
-	                mulheresDormindo++; // Incremento do contador de mulheres na fila.
 	                entrada.unlock(); // Método V(e); -- Libera a fila do P(e);
 	                mulher.lock(); // "Dorme" na fila até ser liberada.
 	            }
@@ -244,7 +249,6 @@ public:
 	            mulheresConsecutivos++; // Incrementa nº de mulheres no WC
 
 	            utilizacaoGeral++; // Incrementa o nº de utilizações
-
 
 	            // SIGNAL DE ENTRADA ( MULHER ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
 	            if (mulheresNoBanheiro < CAPACIDADE_BANHEIRO){ // Verifica se cabe outra mulher.
@@ -266,14 +270,23 @@ public:
 
 	                entrada.unlock(); // Método V(e); -- Libera a fila do P(e);
 	            }
+	            
+	            /*
+	           	mulheresNoBanheiro++; // Mulher entra no WC
 
+	            homensConsecutivos = 0; // Zera homens no WC
+
+	            mulheresConsecutivos++; // Incrementa nº de mulheres no WC
+
+	            utilizacaoGeral++; // Incrementa o nº de utilizações
+				*/
+	            
 	            // SEÇÃO CRÍTICA
 	            mensagem.lock();
-	            cout << "---- ENTREI NO WC -" << utilizacaoGeral << "- | Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER FEMININO)" << endl; 
-	            mensagem.unlock();
-
-	            mensagem.lock();
-	            cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            //cout << "---- ENTREI NO WC -" << utilizacaoGeral << "- | Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER FEMININO)" << endl; 
+	            cout << endl << "---- ENTREI NO WC - [MULHER] - PESSOA Nº: [" << this->id << "] | UTILIZAÇÕES: [" << utilizacaoGeral << "]" << endl << flush;
+	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl << flush;
 	            mensagem.unlock();
 
 	            delayRandomWC();
@@ -282,9 +295,10 @@ public:
 
 	            entrada.lock(); // P(e); -- Necessário para garantir atomicidade.
 
-	            mensagem.lock();
-	            cout << endl << "---DEBUG " << "mulheresConsecutivos: " << mulheresConsecutivos << " | homensDormindo: " << homensDormindo << " | mulheresNoBanheiro: " << mulheresNoBanheiro << endl;
-	            mensagem.unlock();
+	            //mensagem.lock();
+	            //cout << endl << "---DEBUG " << "Homens Consecutivos: " << homensConsecutivos << " | Mulheres na fila: " << mulheresDormindo 
+	            //<< " | Homens na fila: " << homensDormindo << " | Homens no Banheiro: " << homensNoBanheiro << endl;
+	            //mensagem.unlock();
 
 	            mulheresNoBanheiro--; // Decrementa o contador de mulheres no banheiro.
 
@@ -298,7 +312,7 @@ public:
 	            } else if ( !liberouMulherAntes && (mulheresDormindo > 0 && homensDormindo == 0)){ // Condição para liberar uma mulher da fila.
 	            
 	                mulheresDormindo--; // Decrementa contador de mulheres na fila
-	                mulher.unlock(); // Libera uma mulher da fila.
+	                mulher.unlock(); // Libera a entrada de uma mulher da fila no WC.
 
 	            } else {
 
@@ -308,11 +322,10 @@ public:
 
 	            // SEÇÃO NÃO CRÍTICA
 	            mensagem.lock();
-	            cout << "---- SAI DO WC -" << utilizacaoGeral << "- Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER FEMININO)" << endl; 
-	            mensagem.unlock();
-
-	            mensagem.lock();
-	            cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
+	            cout << endl << "---- SAI DO WC - [MULHER] - PESSSOA Nº: [" << this->id << "]" << endl << flush;
+	            //
+	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl << flush;
 	            mensagem.unlock();
 
 	            delayRandomMoscando();
@@ -324,7 +337,7 @@ public:
 
 	    } else { // SEXO INDEFINIDO
 
-	        cout << endl << "Sexo indefinido." << endl;
+	        cout << endl << "Sexo indefinido." << endl << flush;
 
 	    }
 	}
@@ -340,22 +353,20 @@ int main()
 	vector<Pessoa*> pessoas; // Vector de ponteiros p/ a Classe Pessoa
 	vector<thread> tPessoas; // Vector de Threads
 
-	for ( int i = 0 ; i < NUM_PESSOAS ; i++ ){
-		pessoas.push_back( new Pessoa(i, (i%2)?'M':'F') ); // Cria os Objetos (as "pessoas") e define id e sexo de cada uma
+	for ( int i = 1 ; i <= NUM_PESSOAS ; i++ ){
+		pessoas.push_back( new Pessoa(i, ((rand() % NUM_PESSOAS + 1) % 2)?'M':'F') ); // Cria os Objetos (as "pessoas") e define id e sexo de cada uma
 	}
 
+	homem.lock();
+	mulher.lock();
 
-		homem.lock();
-		mulher.lock();
-
-	for (auto &info : pessoas){
-		//tPessoas.push_back( thread(&Pessoa::run,info) ); // Cria uma Thread para cada Objeto e adiciona no Vector de Threads
-		tPessoas.push_back( thread(&Pessoa::entraNoBanheiro,info) ); // Cria uma Thread para cada Objeto e adiciona no Vector de Threads
+	for (auto &obj : pessoas){
+		tPessoas.push_back( thread(&Pessoa::run,obj) ); // Cria uma Thread para cada Objeto e adiciona no Vector de Threads
 	}
 
-	for (auto &th : tPessoas){
-        th.join(); // Faz o processo principal aguardar todas as Threads concluirem o seu trabalho
-    }
+	for (auto &threads : tPessoas){
+	    threads.join(); // Faz o processo principal aguardar todas as Threads concluirem o seu trabalho
+	}
 
 	return 0;
 }

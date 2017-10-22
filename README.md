@@ -13,6 +13,6 @@ Then, execute the generated binary:
 
 ```bash
 user@host:~/lp2_ep2$ ./BanheiroUnissex
-OUPUT...
+OUTPUT...
 ```
 

@@ -1,3 +1,10 @@
+/*
+ * colors.h
+ *
+ *  Created on: 8 de out de 2016
+ *      Author(s): Bruno Correia
+ */
+
 #ifndef _COLORS_
 #define _COLORS_
 

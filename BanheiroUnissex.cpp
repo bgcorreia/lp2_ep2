@@ -2,7 +2,9 @@
  * BanheiroUnissex.cpp
  *
  *  Created on: 16 de out de 2017
- *      Author(s): Bruno, Ícaro, Olívio
+ *      Author(s): - Bruno Correia
+ *		   - Ícaro Targino
+ *		   - Jose Olívio
  */
 
 #include <iostream>
@@ -11,7 +13,7 @@
 #include <mutex>
 #include <chrono>
 
-#include "colors.h" // FUNCOES PARA FORMATAR TEXTO
+#include "include/Colors.h" // FUNCOES PARA FORMATAR TEXTO
 
 #define NUM_PESSOAS 10
 #define MAX_UTILIZACAO 20

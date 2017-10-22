@@ -370,8 +370,12 @@ private:
 	char sexo;
 };
 
-int main() 
-{
+int main(int argc, char* argv[]){
+
+	if (argc < 2){
+		cerr << endl << "Uso: " << argv[0] << " [-p|--pessoas NUMBER]" << endl;
+		return 1;
+	}
 
 	// P/ "HABILITAR" ALEATORIEDADE DA FUNCAO RAND
 	srand (time(NULL));

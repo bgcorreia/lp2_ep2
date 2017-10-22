@@ -1,3 +1,10 @@
+/*
+ * BanheiroUnissex.cpp
+ *
+ *  Created on: 16 de out de 2017
+ *      Author(s): Bruno, Ícaro, Olívio
+ */
+
 #include <iostream>
 #include <vector>
 #include <thread>

@@ -19,7 +19,10 @@ Example:
 
 ```bash
 user@host:~/lp2_ep2$ make
-g++ BanheiroUnissex.cpp -o BanheiroUnissex -std=c++11 -lpthread
+[ -d OBJ ] || mkdir OBJ
+g++ -c BanheiroUnissex.cpp -std=c++11 -lpthread -o OBJ/BanheiroUnissex.o
+g++ OBJ/BanheiroUnissex.o -o AbreBanheiroUnissex -std=c++11 -lpthread
+rm -rf OBJ
 user@host:~/lp2_ep2$
 ```
 
@@ -28,7 +31,7 @@ user@host:~/lp2_ep2$
 Then, execute the generated binary:
 
 ```bash
-user@host:~/lp2_ep2$ ./BanheiroUnissex
+user@host:~/lp2_ep2$ ./AbreBanheiroUnissex
 OUTPUT...
 ```
 

@@ -49,6 +49,6 @@ OBS.: Todos os parâmetros acima são obrigatórios e podem ser
 
 Exemplo de uso:
 
-  user@host:~dir_projeto$ ./AbreBanheiroUnissex -n 10 -m 20 -c 3 -u 3
+  user@host:~dir_projeto$ ./AbreBanheiroUnissex -p 10 -m 20 -c 2 -u 3
 ```
 

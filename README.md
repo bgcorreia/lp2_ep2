@@ -39,7 +39,7 @@ OPÇÕES:
 -p | --pessoas        Número de pessoas
 -m | --maxutilizacao  Número máximo de utilizações do Banheiro
 -c | --capacidade     Capacidade máxima de pessoas no Banheiro
--u | --consecutivos    Número máximo de utilizações consecutivas por gênero
+-u | --consecutivos   Número máximo de utilizações consecutivas por gênero
 
 OBS.: Todos os parâmetros acima são obrigatórios e podem ser
       chamados em qualquer ordem.

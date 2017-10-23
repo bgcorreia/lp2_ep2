@@ -99,7 +99,7 @@ public:
 	                // destroy thread
 	                //mensagem.lock();
 	                mensagem.lock();
-	            	cout << endl << "Banheiro chegou em sua utilização máxima." << endl;
+	            	cout << endl << BOLD(BLNK("BANHEIRO CHEGOU A SUA UTILIZAÇÃO MÁXIMA. FECHADO!")) << endl;
 	            	mensagem.unlock();
 	            	
 	            	break;
@@ -108,6 +108,7 @@ public:
 
 	            } 
 	            else if ( (mulheresNoBanheiro > 0) || ((homensNoBanheiro == CAPACIDADE_BANHEIRO) && (homensConsecutivos >= UTILIZACAO_CONSEC))) { // Se a condição for verdadeira, o homem entra na fila.
+	            //else if ( (mulheresNoBanheiro > 0) || (homensNoBanheiro == CAPACIDADE_BANHEIRO) || (homensConsecutivos >= UTILIZACAO_CONSEC)) { // Se a condição for verdadeira, o homem entra na fila.	
 	                
 	                homensDormindo++; // Incremento do contador de homens na fila.
 
@@ -152,16 +153,6 @@ public:
 
 	                entrada.unlock(); // Método V(e); -- Libera a fila do P(e);
 	            }
-
-	            /*
-	            homensNoBanheiro++; // Homem entra no WC
-
-	            mulheresConsecutivos = 0; // Zera mulheres no WC.
-
-	            homensConsecutivos++; // Incrementa nº de homens no WC
-
-	            utilizacaoGeral++; // Incrementa o nº de utilizações
-	            */
 
 	            // SEÇÃO CRÍTICA
 	            mensagem.lock();
@@ -237,7 +228,7 @@ public:
 	            if ( utilizacaoGeral >= MAX_UTILIZACAO ){ // Verifica se chegou no limite de utilizações.
 	                // destroy thread
 	                mensagem.lock();
-					cout << endl << BOLD(BLNK("BANHEIRO CHEGOU A SUA UTILIZAÇÃO MÁXIMA.")) << endl;
+					cout << endl << BOLD(BLNK("BANHEIRO CHEGOU A SUA UTILIZAÇÃO MÁXIMA. FECHADO!")) << endl;
 					mensagem.unlock();
 					
 					//this->detach();
@@ -256,7 +247,7 @@ public:
 	            	cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
 	           	 	<< "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
 	            	cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
-		            mensagem.unlock();
+	            	mensagem.unlock();
 
 	                entrada.unlock(); // Método V(e); -- Libera a fila do P(e);
 	                mulher.lock(); // "Dorme" na fila até ser liberada.
@@ -290,16 +281,6 @@ public:
 
 	                entrada.unlock(); // Método V(e); -- Libera a fila do P(e);
 	            }
-	            
-	            /*
-	           	mulheresNoBanheiro++; // Mulher entra no WC
-
-	            homensConsecutivos = 0; // Zera homens no WC
-
-	            mulheresConsecutivos++; // Incrementa nº de mulheres no WC
-
-	            utilizacaoGeral++; // Incrementa o nº de utilizações
-				*/
 	            
 	            // SEÇÃO CRÍTICA
 	            mensagem.lock();
@@ -375,18 +356,26 @@ public:
 
 	void opcoesUso(char * comando){
 		cerr << endl << "Uso: " << comando << " [OPÇÕES]\n\n\
-		OPÇÕES:\n\
-		-n  Número de pessoas\n\
-		-m  Número máximo de utilizações do Banheiro\n\
-		-c  Capacidade máxima de pessoas no Banheiro\n\
-		-u  Número máximo de utilizações consecutivas por gênero\n\
-		\n\
-		-v  Versão\n\
-		-h  Ajuda (esta tela)" << endl << endl; 
+OPÇÕES:\n\
+-p | --pessoas        Número de pessoas\n\
+-m | --maxutilizacao  Número máximo de utilizações do Banheiro\n\
+-c | --capacidade     Capacidade máxima de pessoas no Banheiro\n\
+-u | --consecutivos    Número máximo de utilizações consecutivas por gênero\n\
+\n\
+OBS.: Todos os parâmetros acima são obrigatórios e podem ser\n\
+      chamados em qualquer ordem.\n\
+\n\
+-v | --version  Versão do programa\n\
+-h | --help     Ajuda (esta tela)\n\
+\n\
+Exemplo de uso:\n\
+\n\
+  user@host:~dir_projeto$ "<< comando << " -n 10 -m 20 -c 3 -u 3" << endl << endl; 
 	}
 
 	void versao(){
-		cout << endl << "Versão do programa: 0.1" << endl;
+		cout << endl << "Versão do programa: " << BOLD("0.1") << endl;
+		cout << "Copyright © 2017 - Bruno Correia | Ícaro Targino | José Olívio" << endl << endl;
 	}
 
 
@@ -398,20 +387,19 @@ int main(int argc, char* argv[]){
 
 	if (argc == 2){
 
-		if ( !(strcmp(argv[1],"-h")) ) {
+		if ( !(strcmp(argv[1],"-h")) || !(strcmp(argv[1],"--help")) ) {
 			
 			mensagem.opcoesUso(argv[0]);
 			return 0;
 
-		} else if ( !(strcmp(argv[1],"-v")) ) {
+		} else if ( !(strcmp(argv[1],"-v")) || !(strcmp(argv[1],"--version")) ) {
 		
 			mensagem.versao();
 			return 0;
 
 		} else {
 
-			cerr << endl << "Opcao invalida" << endl;
-			mensagem.opcoesUso(argv[0]);
+			cerr << endl << "Opção inválida, utilize '-h' para ajuda." << endl;
 			return 1;
 
 		}
@@ -420,28 +408,28 @@ int main(int argc, char* argv[]){
 
 		for (int i = 1; i < argc; i++){
 		
-	        if ( !(strcmp(argv[i],"-n")) ) {
+	        if ( !(strcmp(argv[i],"-p")) || !(strcmp(argv[i],"--pessoas")) ) {
 	        		
 	        		istringstream iss( argv[++i] );
 	        		iss >> NUM_PESSOAS; // CASTING CHAR P/ INT
 
-	        } else if ( !(strcmp(argv[i],"-m")) ) {
+	        } else if ( !(strcmp(argv[i],"-m")) || !(strcmp(argv[i],"--maxutilizacao")) ) {
 	                
 	                istringstream iss( argv[++i] );
 	        		iss >> MAX_UTILIZACAO; // CASTING CHAR P/ INT
 
-	        } else if ( !(strcmp(argv[i],"-c")) ) {
+	        } else if ( !(strcmp(argv[i],"-c")) || !(strcmp(argv[i],"--capacidade")) ) {
 	                
 	                istringstream iss( argv[++i] );
 	        		iss >> CAPACIDADE_BANHEIRO; // CASTING CHAR P/ INT
 
-	        } else if ( !(strcmp(argv[i],"-u")) ) {
+	        } else if ( !(strcmp(argv[i],"-u")) || !(strcmp(argv[i],"--consecutivos")) ) {
 	                
 	                istringstream iss( argv[++i] );
 	        		iss >> UTILIZACAO_CONSEC; // CASTING CHAR P/ INT
 
 	        } else {
-	                cerr << endl << "Opcao invalida" << endl;
+	                cerr << endl << "Opção inválida, utilize '-h' para ajuda." << endl;
 	                return 1;
 	        }
 
@@ -449,8 +437,7 @@ int main(int argc, char* argv[]){
 
 	} else {
 
-		cerr << endl << "Opcao invalida" << endl;
-		mensagem.opcoesUso(argv[0]);
+		cerr << endl << "Opção inválida, utilize '-h' para ajuda." << endl;
 		return 1;
 				
 	}
@@ -470,6 +457,8 @@ int main(int argc, char* argv[]){
 	mulher.lock();
 
 	system("clear");
+
+	cout << endl << BOLD(BLNK("BANHEIRO ABERTO, PODEM USAR!")) << endl;
 
 	for (auto &obj : pessoas){
 		tPessoas.push_back( thread(&Pessoa::run,obj) ); // Cria uma Thread para cada Objeto e adiciona no Vector de Threads

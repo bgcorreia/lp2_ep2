@@ -3,10 +3,11 @@
  *
  *  Created on: 16 de out de 2017
  *      Author(s): - Bruno Correia
- *		   - Ícaro Targino
- *		   - Jose Olívio
+ *		           - Ícaro Targino
+ *		           - Jose Olívio
  */
 
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <string.h>
@@ -17,9 +18,9 @@
 
 #include "include/Colors.h" // FUNCOES PARA FORMATAR TEXTO
 
-#define TEMPO_MINIMO_WC 10
+#define TEMPO_MINIMO_WC 1
 #define TEMPO_MAXIMO_WC 20
-#define TEMPO_MINIMO_MOSCANDO 10
+#define TEMPO_MINIMO_MOSCANDO 5
 #define TEMPO_MAXIMO_MOSCANDO 20
 
 using namespace std;
@@ -44,6 +45,8 @@ mutex entrada;
 mutex homem;
 mutex mulher;
 mutex mensagem;
+
+vector<int> pessoasNaFila; // Guardar pessoas na fila
 
 void delay(int sec) {
     chrono::seconds time(sec); // Define tempo em segundos
@@ -76,7 +79,6 @@ public:
 	void entraNoBanheiro(){
 
 		mensagem.lock();
-		//cout << endl << BOLD("CHEGOU PESSOA Nº: [") << BOLD(FGRN(<< this->id <<)) << BOLD("] - [") << ((this->sexo=='M')?BOLD(BBLU("HOMEM")):BOLD(BRED("MULHER"))) << BOLD("]") << endl;
 		cout << endl << BOLD("CHEGOU PESSOA Nº: [") << BOLD(FGRN(<< this->id <<)) << BOLD("] - ") << ((this->sexo=='M')?BBLU("[HOMEM]"):BMAG("[MULHER]")) << endl;
 		mensagem.unlock();
 
@@ -84,9 +86,7 @@ public:
 
 	        while (true){
 
-	        	bool liberouHomemAntes = false;
-
-	            entrada.lock(); // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
+	        	entrada.lock(); // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
 	       
 	            mensagem.lock();
 	            cout << endl <<  BOLD("---- " << FCYN("LIBEROU ENTRADA PRINCIPAL")) << endl;
@@ -96,26 +96,25 @@ public:
 	            mensagem.unlock();
 
 	            if ( utilizacaoGeral >= MAX_UTILIZACAO ) { // Verifica se chegou no limite de utilizações.
-	                // destroy thread
-	                //mensagem.lock();
-	                mensagem.lock();
-	            	cout << endl << BOLD(BLNK("BANHEIRO CHEGOU A SUA UTILIZAÇÃO MÁXIMA. FECHADO!")) << endl;
-	            	mensagem.unlock();
-	            	
-	            	break;
-	            	//this->detach();
-	            	//mensagem.unlock();
-
-	            } 
-	            else if ( (mulheresNoBanheiro > 0) || ((homensNoBanheiro == CAPACIDADE_BANHEIRO) && (homensConsecutivos >= UTILIZACAO_CONSEC))) { // Se a condição for verdadeira, o homem entra na fila.
-	            //else if ( (mulheresNoBanheiro > 0) || (homensNoBanheiro == CAPACIDADE_BANHEIRO) || (homensConsecutivos >= UTILIZACAO_CONSEC)) { // Se a condição for verdadeira, o homem entra na fila.	
+	                
+	            	if ( !( find(pessoasNaFila.begin(), pessoasNaFila.end(), this->id) != pessoasNaFila.end() ) ){
+	                    mensagem.lock();
+		            	cout << endl << BOLD("BANHEIRO CHEGOU A SUA UTILIZAÇÃO MÁXIMA - INDO EMBORA - PESSOA Nº: [") BOLD(FGRN(<< this->id <<)) BOLD("] - ") << BBLU("[HOMEM]") << endl;
+		            	mensagem.unlock();
+		            	
+		            	entrada.unlock();
+		            	break;
+		            }
+		            
+	            } else if ( (mulheresNoBanheiro > 0) || (homensNoBanheiro == CAPACIDADE_BANHEIRO) || ((homensConsecutivos >= UTILIZACAO_CONSEC) && (mulheresDormindo > 0)) ) { // Se a condição for verdadeira, o homem entra na fila.	
 	                
 	                homensDormindo++; // Incremento do contador de homens na fila.
 
+	                // Adiciona da pessoa do vector de info da fila
+	                pessoasNaFila.push_back(this->id);
+
 	                mensagem.lock();
-	            	//cout << endl << "Entrei na fila - [" << this->id << "] | Sexo [" << this->sexo << "]." << endl;
 	            	cout << endl << BOLD("---- " << FYEL("ENTREI NA FILA")) << BOLD(" - ") << BBLU("[HOMEM]") << BOLD(" - PESSOA Nº: [" FGRN(<< this->id <<) BOLD("]")) << endl;
-	            	//cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
 	            	cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
 	            	<< "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
 	            	cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
@@ -127,11 +126,21 @@ public:
 
 	            homensNoBanheiro++; // Homem entra no WC
 
+	            // Remove id da pessoa do vector de info da fila
+	            pessoasNaFila.erase(remove(pessoasNaFila.begin(), pessoasNaFila.end(), this->id), pessoasNaFila.end());
+
 	            mulheresConsecutivos = 0; // Zera mulheres no WC.
 
 	            homensConsecutivos++; // Incrementa nº de homens no WC
 
 	            utilizacaoGeral++; // Incrementa o nº de utilizações
+
+	            mensagem.lock();	            
+	            cout << endl << BOLD("---- ") << BOLD(FGRN("ENTREI NO BANHEIRO")) << BOLD(" - ") << BBLU("[HOMEM]") << BOLD(" - PESSOA Nº: [") << BOLD(FGRN(<< this->id <<)) BOLD("]") << BOLD(" | UTILIZAÇÕES: [") BOLD(FGRN(<< utilizacaoGeral <<)) BOLD("]") << endl;	            
+	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
+	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
+	            mensagem.unlock();
 
 	            // SIGNAL DE ENTRADA ( HOMEM ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
 	            if (homensNoBanheiro < CAPACIDADE_BANHEIRO){ // Verifica se cabe outro homem.
@@ -140,8 +149,6 @@ public:
 
 	                    homensDormindo--; // Decrementa contador de homens na fila.
 	                    homem.unlock(); // Libera um homem dormindo na fila a entrar no banheiro.
-
-	                    liberouHomemAntes = true;
 
 	                } else {
 
@@ -155,57 +162,38 @@ public:
 	            }
 
 	            // SEÇÃO CRÍTICA
-	            mensagem.lock();
-	            //cout << "---- ENTREI NO WC -" << utilizacaoGeral << "- Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER MASCULINO)" << endl; 
-	            cout << endl << BOLD("---- ") << BOLD(FGRN("ENTREI NO BANHEIRO")) << BOLD(" - ") << BBLU("[HOMEM]") << BOLD(" - PESSOA Nº: [") << BOLD(FGRN(<< this->id <<)) BOLD("]") << BOLD(" | UTILIZAÇÕES: [") BOLD(FGRN(<< utilizacaoGeral <<)) BOLD("]") << endl;
-	            //cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
-	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
-	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
-	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
-	            mensagem.unlock();
-
 	            delayRandomWC();
-	            //utilizaOBanheiro();
 	            // FIM DA SEÇÃO CRÍTICA
 
 	            entrada.lock(); // P(e); -- Necessário para garantir atomicidade.
 
-	            //mensagem.lock();
-	            //cout << endl << "---DEBUG " << "Homens Consecutivos: " << homensConsecutivos << " | Mulheres na fila: " << mulheresDormindo 
-	            //<< " | Homens na fila: " << homensDormindo << " | Homens no Banheiro: " << homensNoBanheiro << endl;
-	            //mensagem.unlock();
-
 	            homensNoBanheiro--; // Decrementa o contador de homens no banheiro.
 
+	            mensagem.lock();
+		        cout << endl << BOLD("---- ") << BOLD(FRED("SAI DO BANHEIRO")) << BOLD(" - ") << BBLU("[HOMEM]") << BOLD(" - PESSSOA Nº: [") BOLD(FGRN(<< this->id <<)) BOLD("]") << endl;
+		        cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
+	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
+	            mensagem.unlock();
+
 	            // SIGNAL DE SAÍDA ( HOMEM ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
-	            //if ( (homensConsecutivos >= UTILIZACAO_CONSEC) && (mulheresDormindo > 0) && (homensNoBanheiro == 0) ){ // Condição para liberar uma mulher da fila.
 	            if ( (mulheresDormindo > 0) && (homensNoBanheiro == 0) ){ // Condição para liberar uma mulher da fila.
+	            
 	                mulheresDormindo--; // Decrementa contador de mulheres na fila.
 	                mulher.unlock(); // Libera uma mulher da fila.
-	            //} else if ( !liberouHomemAntes && ((homensConsecutivos < UTILIZACAO_CONSEC && homensDormindo > 0 && mulheresDormindo == 0) || (homensConsecutivos > UTILIZACAO_CONSEC && mulheresDormindo == 0))){ // Condição para liberar um homem da fila.
-				//} else if ( (homensDormindo > 0) && (mulheresDormindo == 0) ){ // Condição para liberar um homem da fila.	           
-				} else if ( !liberouHomemAntes && ( (homensDormindo > 0) && (mulheresDormindo == 0) )){ // Condição para liberar um homem da fila.	           	
-	            //else if ( homensDormindo > 0 || (homensConsecutivos > UTILIZACAO_CONSEC && mulheresDormindo == 0)){ // Condição para liberar um homem da fila.	
+	            
+	            } else if ( (homensDormindo > 0) && (mulheresDormindo == 0) ){ // Condição para liberar um homem da fila.	           	
+	            
 	                homensDormindo--; // Decrementa contador de homens na fila
 	                homem.unlock(); // Libera um homem da fila.
+	            
 	            } else {
 	                entrada.unlock(); // Método V(e);
 	            }
 
 		        // SEÇÃO NÃO CRÍTICA
-		        mensagem.lock();
-		        //cout << "---- SAI DO WC -" << utilizacaoGeral << "- Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER MASCULINO)" << endl; 
-		        cout << endl << BOLD("---- ") << BOLD(FRED("SAI DO BANHEIRO")) << BOLD(" - ") << BBLU("[HOMEM]") << BOLD(" - PESSSOA Nº: [") BOLD(FGRN(<< this->id <<)) BOLD("]") << endl;
-		        //cout << "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
-	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
-	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
-	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
-	            mensagem.unlock();
-
-		        delayRandomMoscando();
-	            //ficaMoscando();
-	            //cout << "---- SEÇÃO NÃO CRÍTICA | Pessoa: " << (this->id)+1 << " - Sexo: " << this->sexo << " (TEM DE SER MASCULINO)" << endl; 
-	            //delay(5);
+		        if ( !(utilizacaoGeral >= MAX_UTILIZACAO) )
+		        	delayRandomMoscando();
 
 	        }
 
@@ -213,12 +201,9 @@ public:
 
 	        while (true){
 
-	        	bool liberouMulherAntes = false;
-
-	            entrada.lock(); // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
+	        	entrada.lock(); // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
 	            
 	            mensagem.lock();
-	            //cout << endl <<  "Homens no banheiro: " << homensNoBanheiro << " | Mulheres no banheiro: " << mulheresNoBanheiro << endl;
 	            cout << endl <<  BOLD("---- " << FCYN("LIBEROU ENTRADA PRINCIPAL")) << endl;
 	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
 	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
@@ -226,25 +211,26 @@ public:
 	            mensagem.unlock();
 
 	            if ( utilizacaoGeral >= MAX_UTILIZACAO ){ // Verifica se chegou no limite de utilizações.
-	                // destroy thread
-	                mensagem.lock();
-					cout << endl << BOLD(BLNK("BANHEIRO CHEGOU A SUA UTILIZAÇÃO MÁXIMA. FECHADO!")) << endl;
-					mensagem.unlock();
-					
-					//this->detach();
-					break;
-
-	            }
-	            else if ( (homensNoBanheiro > 0) || ((mulheresNoBanheiro == CAPACIDADE_BANHEIRO) && (mulheresConsecutivos >= UTILIZACAO_CONSEC))){ // Se a condição for verdadeira, a mulher entra na fila.
+	            
+	            	if ( !( find(pessoasNaFila.begin(), pessoasNaFila.end(), this->id) != pessoasNaFila.end() ) ){
+	                    mensagem.lock();
+		            	cout << endl << BOLD("BANHEIRO CHEGOU A SUA UTILIZAÇÃO MÁXIMA - INDO EMBORA - PESSOA Nº: [") BOLD(FGRN(<< this->id <<)) BOLD("] - ") << BRED("[MULHER]") << endl;
+		            	mensagem.unlock();
+		            	
+		            	entrada.unlock();
+		            	break;
+		            }
+		        
+	            } else if ( (homensNoBanheiro > 0) || (mulheresNoBanheiro == CAPACIDADE_BANHEIRO) || ((mulheresConsecutivos >= UTILIZACAO_CONSEC) && (homensDormindo > 0) ) ) { // Se a condição for verdadeira, a mulher entra na fila.
 
 	            	mulheresDormindo++; // Incremento do contador de mulheres na fila.
 
+	            	// Adiciona da pessoa do vector de info da fila
+	                pessoasNaFila.push_back(this->id);
+
 	            	mensagem.lock();
-	            	//cout << endl << "Entrei na fila - [" << this->id << "] | Sexo [" << this->sexo << "]." << endl;
-	            	//cout << "---- ENTREI NA FILA - [" << this->id << "] | Sexo [" << this->sexo << "]." << endl;
-	            	cout << endl << BOLD("---- " << FYEL("ENTREI NA FILA")) << BOLD(" - ") << BMAG("[MULHER]") << BOLD(" - PESSOA Nº: [" FGRN(<< this->id <<) BOLD("]")) << endl;
-	            	//
-	            	cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	               	cout << endl << BOLD("---- " << FYEL("ENTREI NA FILA")) << BOLD(" - ") << BMAG("[MULHER]") << BOLD(" - PESSOA Nº: [" FGRN(<< this->id <<) BOLD("]")) << endl;
+	               	cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
 	           	 	<< "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
 	            	cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
 	            	mensagem.unlock();
@@ -255,11 +241,21 @@ public:
 
 	            mulheresNoBanheiro++; // Mulher entra no WC
 
+	            // Remove id da pessoa do vector de info da fila
+	            pessoasNaFila.erase(remove(pessoasNaFila.begin(), pessoasNaFila.end(), this->id), pessoasNaFila.end());
+
 	            homensConsecutivos = 0; // Zera homens no WC
 
 	            mulheresConsecutivos++; // Incrementa nº de mulheres no WC
 
 	            utilizacaoGeral++; // Incrementa o nº de utilizações
+
+	            mensagem.lock();
+	            cout << endl << BOLD("---- ") << BOLD(FGRN("ENTREI NO BANHEIRO")) << BOLD(" - ") << BMAG("[MULHER]") << BOLD(" - PESSOA Nº: [") << BOLD(FGRN(<< this->id <<)) BOLD("]") << BOLD(" | UTILIZAÇÕES: [") BOLD(FGRN(<< utilizacaoGeral <<)) BOLD("]") << endl;
+	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
+	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
+	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
+	            mensagem.unlock();
 
 	            // SIGNAL DE ENTRADA ( MULHER ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
 	            if (mulheresNoBanheiro < CAPACIDADE_BANHEIRO){ // Verifica se cabe outra mulher.
@@ -268,8 +264,6 @@ public:
 	                
 	                    mulheresDormindo--; // Decrementa contador de mulheres na fila.
 	                    mulher.unlock(); // Libera uma mulher dormindo na fila a entrar no banheiro.
-
-	                    liberouMulherAntes = true;
 
 	                } else {
 
@@ -283,36 +277,28 @@ public:
 	            }
 	            
 	            // SEÇÃO CRÍTICA
-	            mensagem.lock();
-	            //cout << "---- ENTREI NO WC -" << utilizacaoGeral << "- | Pessoa: [" << this->id << "] - Sexo: " << this->sexo << " (TEM DE SER FEMININO)" << endl; 
-	            cout << endl << BOLD("---- ") << BOLD(FGRN("ENTREI NO BANHEIRO")) << BOLD(" - ") << BMAG("[MULHER]") << BOLD(" - PESSOA Nº: [") << BOLD(FGRN(<< this->id <<)) BOLD("]") << BOLD(" | UTILIZAÇÕES: [") BOLD(FGRN(<< utilizacaoGeral <<)) BOLD("]") << endl;
+	            delayRandomWC();
+	            // FIM DA SEÇÃO CRÍTICA
+
+	            entrada.lock(); // P(e); -- Necessário para garantir atomicidade.
+
+	            mulheresNoBanheiro--; // Decrementa o contador de mulheres no banheiro.
+
+	           	mensagem.lock();
+	            cout << endl << BOLD("---- ") << BOLD(FRED("SAI DO BANHEIRO")) << BOLD(" - ") << BMAG("[MULHER]") << BOLD(" - PESSSOA Nº: [") BOLD(FGRN(<< this->id <<)) BOLD("]") << endl;
+	            //
 	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
 	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
 	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
 	            mensagem.unlock();
 
-	            delayRandomWC();
-	            //utilizaOBanheiro();
-	            // FIM DA SEÇÃO CRÍTICA
-
-	            entrada.lock(); // P(e); -- Necessário para garantir atomicidade.
-
-	            //mensagem.lock();
-	            //cout << endl << "---DEBUG " << "Homens Consecutivos: " << homensConsecutivos << " | Mulheres na fila: " << mulheresDormindo 
-	            //<< " | Homens na fila: " << homensDormindo << " | Homens no Banheiro: " << homensNoBanheiro << endl;
-	            //mensagem.unlock();
-
-	            mulheresNoBanheiro--; // Decrementa o contador de mulheres no banheiro.
-
 	            // SIGNAL DE SAÍDA ( MULHER ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
-	            //if (mulheresConsecutivos >= UTILIZACAO_CONSEC && homensDormindo > 0 && mulheresNoBanheiro == 0){ // Condição para liberar um homem da fila.
 	            if (homensDormindo > 0 && mulheresNoBanheiro == 0){ // Condição para liberar um homem da fila.	
 	            
 	                homensDormindo--; // Decrementa contador de homens na fila.
 	                homem.unlock(); // Libera um homem da fila.
 	            
-	            //} else if ((mulheresDormindo > 0 && homensDormindo == 0)){ // Condição para liberar uma mulher da fila.
-	            } else if ( !liberouMulherAntes && (mulheresDormindo > 0 && homensDormindo == 0)){ // Condição para liberar uma mulher da fila.	
+	            } else if ( (mulheresDormindo > 0 && homensDormindo == 0)){ // Condição para liberar uma mulher da fila.	
 	            
 	                mulheresDormindo--; // Decrementa contador de mulheres na fila
 	                mulher.unlock(); // Libera a entrada de uma mulher da fila no WC.
@@ -324,18 +310,8 @@ public:
 	            }
 
 	            // SEÇÃO NÃO CRÍTICA
-	            mensagem.lock();
-	            cout << endl << BOLD("---- ") << BOLD(FRED("SAI DO BANHEIRO")) << BOLD(" - ") << BMAG("[MULHER]") << BOLD(" - PESSSOA Nº: [") BOLD(FGRN(<< this->id <<)) BOLD("]") << endl;
-	            //
-	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
-	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
-	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
-	            mensagem.unlock();
-
-	            delayRandomMoscando();
-	            //ficaMoscando();
-	            //cout << "---- SEÇÃO NÃO CRÍTICA | Pessoa: " << (this->id)+1 << " - Sexo: " << this->sexo << " (TEM DE SER FEMININO)" << endl; 
-	            //delay(5);
+	            if ( !(utilizacaoGeral >= MAX_UTILIZACAO) )
+	            	delayRandomMoscando();
 
 	        }
 
@@ -384,6 +360,11 @@ Exemplo de uso:\n\
 int main(int argc, char* argv[]){
 
 	Mensagens mensagem;
+
+	/* 
+	IF Aninhados para captura dos parametros
+	Usando if pois o case em c++ não aceita string
+	*/
 
 	if (argc == 2){
 
@@ -441,7 +422,6 @@ int main(int argc, char* argv[]){
 		return 1;
 				
 	}
-
 
 	// P/ "HABILITAR" ALEATORIEDADE DA FUNCAO RAND
 	srand (time(NULL));

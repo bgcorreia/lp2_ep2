@@ -2,7 +2,7 @@
 
 ## Description
 
-This project aims to create a unisex bathroom using the stick technique in c ++.
+This project aims to create a unisex bathroom using the `baton passing` technique in C++.
 
 The criteria are:
 

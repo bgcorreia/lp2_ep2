@@ -31,7 +31,24 @@ user@host:~/lp2_ep2$
 Then, execute the generated binary:
 
 ```bash
-user@host:~/lp2_ep2$ ./AbreBanheiroUnissex
-OUTPUT...
+user@host:~/lp2_ep2$ ./AbreBanheiroUnissex --help
+
+Uso: ./AbreBanheiroUnissex [OPÇÕES]
+
+OPÇÕES:
+-p | --pessoas        Número de pessoas
+-m | --maxutilizacao  Número máximo de utilizações do Banheiro
+-c | --capacidade     Capacidade máxima de pessoas no Banheiro
+-u | --consecutivos    Número máximo de utilizações consecutivas por gênero
+
+OBS.: Todos os parâmetros acima são obrigatórios e podem ser
+      chamados em qualquer ordem.
+
+-v | --version  Versão do programa
+-h | --help     Ajuda (esta tela)
+
+Exemplo de uso:
+
+  user@host:~dir_projeto$ ./AbreBanheiroUnissex -n 10 -m 20 -c 3 -u 3
 ```
 

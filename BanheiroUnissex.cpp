@@ -88,12 +88,14 @@ public:
 
 	        	entrada.lock(); // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
 	       
+	       		/*
 	            mensagem.lock();
 	            cout << endl <<  BOLD("---- " << FCYN("LIBEROU ENTRADA PRINCIPAL")) << endl;
 	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
 	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
 	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
 	            mensagem.unlock();
+	            */
 
 	            if ( utilizacaoGeral >= MAX_UTILIZACAO ) { // Verifica se chegou no limite de utilizações.
 	                
@@ -182,7 +184,8 @@ public:
 	                mulheresDormindo--; // Decrementa contador de mulheres na fila.
 	                mulher.unlock(); // Libera uma mulher da fila.
 	            
-	            } else if ( (homensDormindo > 0) && (mulheresDormindo == 0) ){ // Condição para liberar um homem da fila.	           	
+	            //} else if ( (homensDormindo > 0) && (mulheresDormindo == 0) ){ // Condição para liberar um homem da fila.	   
+	            } else if ( (homensDormindo > 0) && (homensConsecutivos < UTILIZACAO_CONSEC) ){ // Condição para liberar um homem da fila.	           	
 	            
 	                homensDormindo--; // Decrementa contador de homens na fila
 	                homem.unlock(); // Libera um homem da fila.
@@ -203,12 +206,14 @@ public:
 
 	        	entrada.lock(); // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
 	            
+	            /*
 	            mensagem.lock();
 	            cout << endl <<  BOLD("---- " << FCYN("LIBEROU ENTRADA PRINCIPAL")) << endl;
 	            cout << "Homens no banheiro: [" << homensNoBanheiro << "] | Mulheres no banheiro: [" << mulheresNoBanheiro 
 	            << "] || Homens na fila: [" << homensDormindo << "] | Mulheres na fila: [" << mulheresDormindo << "]" << endl;
 	            cout << "Homens Consecutivos: [" << homensConsecutivos << "] | Mulheres Consecutivas: [" << mulheresConsecutivos << "]" << endl;
 	            mensagem.unlock();
+	            */
 
 	            if ( utilizacaoGeral >= MAX_UTILIZACAO ){ // Verifica se chegou no limite de utilizações.
 	            
@@ -298,7 +303,8 @@ public:
 	                homensDormindo--; // Decrementa contador de homens na fila.
 	                homem.unlock(); // Libera um homem da fila.
 	            
-	            } else if ( (mulheresDormindo > 0 && homensDormindo == 0)){ // Condição para liberar uma mulher da fila.	
+	            //} else if ( (mulheresDormindo > 0 && homensDormindo == 0)){ // Condição para liberar uma mulher da fila.	
+	            } else if ( mulheresDormindo > 0 && (mulheresConsecutivos < UTILIZACAO_CONSEC)){ // Condição para liberar uma mulher da fila.	
 	            
 	                mulheresDormindo--; // Decrementa contador de mulheres na fila
 	                mulher.unlock(); // Libera a entrada de uma mulher da fila no WC.

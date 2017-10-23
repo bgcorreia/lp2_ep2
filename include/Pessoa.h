@@ -25,14 +25,14 @@ public:
     mutex mulher = 0;
 
 
-	Pessoa(int id,sexo s, Parque *p);
-
+	Pessoa(int id,sexo s);
 	void entraNoBanheiro();
 
-	void saiDoBanheiro();
+	// void saiDoBanheiro();
+	void utilizaOBanheiro();
 
 	void ficaMoscando();
-	bool banheiroFechado();
+	// bool banheiroFechado();
 
 	void run();
 

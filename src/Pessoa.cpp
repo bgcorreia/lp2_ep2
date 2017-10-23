@@ -4,80 +4,103 @@
 
 void Pessoa::entraNoBanheiro(sexo){
 
-    if (sexo == 'M') {
+    if (sexo == 'H') {
 
         while (true){
 
-            entrada.lock; // Entra na fila
+            entrada.lock; // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
 
-            if ( mulheresNoBanheiro > 0 ){
-                homensDormindo++;
-                entrada.unlock;
-                homem.lock;
+            if ( utilizacaoGeral == MAX_UTILIZACAO ) // Verifica se chegou no limite de utilizações.
+            {
+                // destroy thread
             }
 
-            homensNoBanheiro++; // Entra no banheiro
+            else ( mulheresNoBanheiro > 0 || homensNoBanheiro == CAPACIDADE_BANHEIRO ) // Se a condição for verdadeira, o homem entra na fila.
+            {
+                homensDormindo++; // Incremento do contador de homens na fila.
+                entrada.unlock; // Método V(e); -- Libera a fila do P(e);
+                homem.lock; // "Dorme" na fila até ser liberado.
+            }
 
-            mulheresConsecutivos = 0;
-            homensConsecutivos++;
+            homensNoBanheiro++; // Homem entra no WC
 
-            // Antes do signal, apenas um processo executa por vez
+            mulheresConsecutivos = 0; // Zera mulheres no WC.
 
-            // SIGNAL - AJUSTAR RESTRIÇÕES
-            if (homensNoBanheiro == 0 && mulheresDormindo > 0) {
-                mulheresDormindo--;
-                mulher.unlock;
-            } else if (mulheresNoBanheiro == 0 && homensNoBanheiro == 0 && homensDormindo > 0) {
-                homensDormindo--;
-                homem.unlock;
+            homensConsecutivos++; // Incrementa nº de homens no WC
+
+            utilzacaoGeral++; // Incrementa o nº de utilizações
+
+
+            // SIGNAL DE ENTRADA ( HOMEM ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
+            if (homensNoBanheiro < CAPACIDADE_BANHEIRO) // Verifica se cabe outro homem.
+            {
+
+                if (homensConsecutivos < UTILIZACAO_CONSEC && homensDormindo > 0 ) // Verifica se tem homens na fila e se ainda não chegou no limite de utilização.
+                {
+
+                    homensDormindo--; // Decrementa contador de homens na fila.
+                    homem.unlock; // Libera um homem dormindo na fila a entrar no banheiro.
+
+
+                } else {
+
+                    entrada.unlock; // Método V(e); -- Libera a fila do P(e);
+
+                }
+
             } else {
-                entrada.unlock;
+
+                entrada.unlock; // Método V(e); -- Libera a fila do P(e);
             }
 
-            /*
-             SECAO CRITICA
-            */
+            // SEÇÃO CRÍTICA
+           utilizaOBanheiro();
+           // FIM DA SEÇÃO CRÍTICA
 
-            entrada.lock;
+            entrada.lock; // P(e); -- Necessário para garantir atomicidade.
 
-            homensNoBanheiro--;
+            homensNoBanheiro--; // Decrementa o contador de homens no banheiro.
 
-            //SIGNAL- AJUSTAR RESTRIÇÕES
-            if (homensNoBanheiro == 0 && mulheresDormindo > 0) {
-                mulheresDormindo--;
-                mulher.unlock;
-            } else if (mulheresNoBanheiro == 0 && homensNoBanheiro == 0 && homensDormindo > 0) {
-                homensDormindo--;
-                homem.unlock;
+            // SIGNAL DE SAÍDA ( HOMEM ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
+            if (homensConsecutivos >= UTILIZACAO_CONSEC && mulheresDormindo > 0 && homensNoBanheiro == 0) // Condição para liberar uma mulher da fila.
+                {
+
+                mulheresDormindo--; // Decrementa contador de mulheres na fila.
+                mulher.unlock; // Libera uma mulher da fila.
+
+            else if ((homensConsecutivos < UTILIZACAO_CONSEC && homensDormindo > 0 && mulheresDormindo == 0) || (homensConsecutivos >= UTILIZACAO_CONSEC && mulheresDormindo == 0)) // Condição para liberar um homem da fila.
+            {
+
+                homensDormindo--; // Decrementa contador de homens na fila
+                homem.unlock; // Libera um homem da fila.
+
             } else {
-                entrada.unlock;
+
+                entrada.unlock; // Método V(e);
+
             }
 
-            // FICA MOSCANDO - NON CRITICAL
+          // SEÇÃO NÃO CRÍTICA
+            ficaMoscando();
 
         }
 
-    } else if (sexo == 'F') {
+    } else if (sexo == 'M') {
 
         while (true){
 
-            entrada.lock; // Formação da fila
+            entrada.lock; // Método P(e); -- A primeira thread a executar o método é a primeira a sair.
 
-            if ( utilizacaoGeral == MAX_UTILIZACAO ) {
-
+            if ( utilizacaoGeral == MAX_UTILIZACAO ) // Verifica se chegou no limite de utilizações.
+            {
                 // destroy thread
-                return 1; // DUVIDA
+            }
 
-            } else ( homensNoBanheiro > 0 || mulheresNoBanheiro == CAPACIDADE_BANHEIRO ){
-                mulheresDormindo++; // Espera na fila
-                entrada.unlock; // Libera entrada na fila
-
-                //if ( !(homensDormindo > 0 && mulheresConsecutivos >= UTILIZACAO_CONSEC ) ) { // DUVIDA
-                    mulher.lock; // Permite a mulher entrar no banheiro
-                //} else {
-                     // Tira mulher da fila
-
-                //}
+            else ( homensNoBanheiro > 0 || mulheresNoBanheiro == CAPACIDADE_BANHEIRO ) // Se a condição for verdadeira, a mulher entra na fila.
+            {
+                mulheresDormindo++; // Incremento do contador de mulheres na fila.
+                entrada.unlock; // Método V(e); -- Libera a fila do P(e);
+                mulher.lock; // "Dorme" na fila até ser liberada.
             }
 
             mulheresNoBanheiro++; // Mulher entra no WC
@@ -89,53 +112,57 @@ void Pessoa::entraNoBanheiro(sexo){
             utilzacaoGeral++; // Incrementa o nº de utilizações
 
 
-            //SIGNAL- AJUSTAR RESTRIÇÕES
-            if (mulheresNoBanheiro < CAPACIDADE_BANHEIRO) {
+            // SIGNAL DE ENTRADA ( MULHER ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
+            if (mulheresNoBanheiro < CAPACIDADE_BANHEIRO) // Verifica se cabe outra mulher.
+            {
 
-                if (mulheresConsecutivos < UTILIZACAO_CONSEC && mulheresDormindo > 0 ){
+                if (mulheresConsecutivos < UTILIZACAO_CONSEC && mulheresDormindo > 0 ) // Verifica se tem mulheres na fila e se ainda não chegou no limite de utilização.
+                {
 
-                    mulheresDormindo--; // Tira mulher da fila
-                    mulher.unlock; // Permite entrada no WC
+                    mulheresDormindo--; // Decrementa contador de mulheres na fila.
+                    mulher.unlock; // Libera uma mulher dormindo na fila a entrar no banheiro.
 
 
                 } else {
 
-                    entrada.unlock; // Libera entrada na fila
+                    entrada.unlock; // Método V(e); -- Libera a fila do P(e);
 
                 }
 
             } else {
 
-                entrada.unlock; // Libera entrada na fila
+                entrada.unlock; // Método V(e); -- Libera a fila do P(e);
+            }
+
+            // SEÇÃO CRÍTICA
+           utilizaOBanheiro();
+           // FIM DA SEÇÃO CRÍTICA
+
+            entrada.lock; // P(e); -- Necessário para garantir atomicidade.
+
+            mulheresNoBanheiro--; // Decrementa o contador de mulheres no banheiro.
+
+            // SIGNAL DE SAÍDA ( MULHER ): AQUI OCORRE A "PASSAGEM DE BASTÃO".
+            if (mulheresConsecutivos >= UTILIZACAO_CONSEC && homensDormindo > 0 && mulheresNoBanheiro == 0) // Condição para liberar um homem da fila.
+                {
+
+                homensDormindo--; // Decrementa contador de homens na fila.
+                homem.unlock; // Libera um homem da fila.
+
+            else if ((mulheresConsecutivos < UTILIZACAO_CONSEC && mulheresDormindo > 0 && homensDormindo == 0) || (mulheresConsecutivos > UTILIZACAO_CONSEC && homensDormindo == 0)) // Condição para liberar uma mulher da fila.
+            {
+
+                mulheresDormindo--; // Decrementa contador de mulheres na fila
+                mulher.unlock; // Libera uma mulher da fila.
+
+            } else {
+
+                entrada.unlock; // Método V(e);
 
             }
 
-            /*
-             SECAO CRITICA
-            */
-
-            entrada.lock; // DÚVIDA
-
-            mulheresNoBanheiro--;
-
-            //SIGNAL- AJUSTAR RESTRIÇÕES
-            if (mulheresConsecutivos >= UTILIZACAO_CONSEC && homensDormindo > 0 && mulheresNoBanheiro == 0) { // Libera Homem
-
-                homensDormindo--;
-                homem.unlock;
-
-            else if ((mulheresConsecutivos < UTILIZACAO_CONSEC && mulheresDormindo > 0 && homensDormindo == 0) || (mulheresConsecutivos > UTILIZACAO_CONSEC && homensDormindo == 0)){
-
-                mulheresDormindo--;
-                mulher.unlock;
-
-            } else { // Libera entrada na fila
-
-                entrada.unlock;
-
-            }
-
-            // FICA MOSCANDO - NON CRITICAL
+            // SEÇÃO NÃO CRÍTICA
+            ficaMoscando();
 
         }
 

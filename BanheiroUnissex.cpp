@@ -8,6 +8,8 @@
  */
 
 #include <iostream>
+#include <sstream>
+#include <string.h>
 #include <vector>
 #include <thread>
 #include <mutex>
@@ -15,16 +17,14 @@
 
 #include "include/Colors.h" // FUNCOES PARA FORMATAR TEXTO
 
-#define NUM_PESSOAS 10
-#define MAX_UTILIZACAO 20
-#define CAPACIDADE_BANHEIRO 3
-#define UTILIZACAO_CONSEC 3
 #define TEMPO_MINIMO_WC 10
 #define TEMPO_MAXIMO_WC 20
 #define TEMPO_MINIMO_MOSCANDO 10
 #define TEMPO_MAXIMO_MOSCANDO 20
 
 using namespace std;
+
+int NUM_PESSOAS, MAX_UTILIZACAO, CAPACIDADE_BANHEIRO, UTILIZACAO_CONSEC;
 
 // nr - passagem de bastao
 int homensNoBanheiro = 0; // Nº de homens dentro do WC
@@ -370,12 +370,91 @@ private:
 	char sexo;
 };
 
+class Mensagens {
+public:
+
+	void opcoesUso(char * comando){
+		cerr << endl << "Uso: " << comando << " [OPÇÕES]\n\n\
+		OPÇÕES:\n\
+		-n  Número de pessoas\n\
+		-m  Número máximo de utilizações do Banheiro\n\
+		-c  Capacidade máxima de pessoas no Banheiro\n\
+		-u  Número máximo de utilizações consecutivas por gênero\n\
+		\n\
+		-v  Versão\n\
+		-h  Ajuda (esta tela)" << endl << endl; 
+	}
+
+	void versao(){
+		cout << endl << "Versão do programa: 0.1" << endl;
+	}
+
+
+};
+
 int main(int argc, char* argv[]){
 
-	if (argc < 2){
-		cerr << endl << "Uso: " << argv[0] << " [-p|--pessoas NUMBER]" << endl;
+	Mensagens mensagem;
+
+	if (argc == 2){
+
+		if ( !(strcmp(argv[1],"-h")) ) {
+			
+			mensagem.opcoesUso(argv[0]);
+			return 0;
+
+		} else if ( !(strcmp(argv[1],"-v")) ) {
+		
+			mensagem.versao();
+			return 0;
+
+		} else {
+
+			cerr << endl << "Opcao invalida" << endl;
+			mensagem.opcoesUso(argv[0]);
+			return 1;
+
+		}
+	
+	} else if (argc == 9){
+
+		for (int i = 1; i < argc; i++){
+		
+	        if ( !(strcmp(argv[i],"-n")) ) {
+	        		
+	        		istringstream iss( argv[++i] );
+	        		iss >> NUM_PESSOAS; // CASTING CHAR P/ INT
+
+	        } else if ( !(strcmp(argv[i],"-m")) ) {
+	                
+	                istringstream iss( argv[++i] );
+	        		iss >> MAX_UTILIZACAO; // CASTING CHAR P/ INT
+
+	        } else if ( !(strcmp(argv[i],"-c")) ) {
+	                
+	                istringstream iss( argv[++i] );
+	        		iss >> CAPACIDADE_BANHEIRO; // CASTING CHAR P/ INT
+
+	        } else if ( !(strcmp(argv[i],"-u")) ) {
+	                
+	                istringstream iss( argv[++i] );
+	        		iss >> UTILIZACAO_CONSEC; // CASTING CHAR P/ INT
+
+	        } else {
+	                cerr << endl << "Opcao invalida" << endl;
+	                return 1;
+	        }
+
+		}
+
+	} else {
+
+		cerr << endl << "Opcao invalida" << endl;
+		mensagem.opcoesUso(argv[0]);
 		return 1;
+				
 	}
+
 
 	// P/ "HABILITAR" ALEATORIEDADE DA FUNCAO RAND
 	srand (time(NULL));
@@ -389,6 +468,8 @@ int main(int argc, char* argv[]){
 
 	homem.lock();
 	mulher.lock();
+
+	system("clear");
 
 	for (auto &obj : pessoas){
 		tPessoas.push_back( thread(&Pessoa::run,obj) ); // Cria uma Thread para cada Objeto e adiciona no Vector de Threads
